@@ -55,16 +55,52 @@ def arguments():
             epilog="""
             This can be used alone for another time tracker's backend.
             Altho this should be used with the other files in this program.
-            """
+            """,
             )
     parser.add_argument(
             "-wd",
             "--write_delay",
-            type=int, default=60,
+            type=int, 
+            default=60,
             help="""
-            This is the write delay. It should be an int, in seconds. The default value is 60.
-            """
+            This is the delay that your data gets written down in the log.
+            It should be an int. The default value is 60.
+            Lower values means more writes, that means that in the case of a power outage,
+            or a system shutdown, your data loss would be less, it would be more
+            accurate. However it can also wear out your storage device with
+            the constant writing on the storage device.
+            Higher values means less writes, that means that in the case of a power outage,
+            or a system shutdown, your data loss would be more, it would be less
+            accurate. However it doesn't wear out your storage device that much
+            because of the delay between writes. To actually calculate how long
+            each write will take, you should multiply it with the update delay.
+            That means if update delay is 1, and the write delay is 60, that 
+            means you should get a write delay of 1*60 = 60 seconds. if update 
+            delay is 1.5, and the write delay is 50, that means you should get 
+            a write delay of 1.5*50 = 75 seconds.
+            """,
             )
+    parser.add_argument(
+            "-ud",
+            "--update-delay",
+            type=float,
+            default=1,
+            help="""
+            This is the update delay that your data gets updated.
+            It can be an int or a float. The default value is 1. using this something
+            that's less that 1 isn't gonna make a difference cz the the program
+            doesn't write down the milliseconds in the database. it writes the seconds.
+            so making this less than 1 should make no difference in accuracy while it
+            will make this program use more resource too. However you can set it
+            to less than one because of freedom of choice. if you set the value 
+            that's higher than 1, the update delay is gonna be much more slow, so
+            the data is gonna be much less accurate. But if your system has a hard
+            time running this program in the background all the time, you can se
+            this to something that's more than 1. that's not guarantied to fix it,
+            however it might help.
+            """,
+            )
+
     parser.parse_args()
     
 def main():
@@ -90,7 +126,7 @@ def main():
                 ) as load_log_file:
             file_load = json.load(load_log_file)
         x = "file"
-    except FileNotFoundError:
+    except (FileNotFoundError, json.decoder.JSONDecodeError):
         pass
         
     while True:
@@ -132,7 +168,7 @@ def main():
                 f"{hour_log_file_path}/{time.strftime('%H')}.log",
                 "w"
                 ) as hour_log_file:
-            hour_log_file.writelines(json.dumps(last_log))
+            json.dump(last_log, hour_log_file, indent=4)
             print("log written")
         # except
 
