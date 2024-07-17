@@ -1,5 +1,4 @@
-import psutil, time, json
-import os
+import psutil, time, json, os, argparse
    
 def log_parser(
     list_of_tracked_tasks:list=[],
@@ -13,9 +12,19 @@ def log_parser(
             sessions[tracked_tasks]=[] # this is sessions list
             if tracked_tasks in currently_tracked_tasks:
                 # print("tracked_tasks in currently_tracked_tasks")
-                sessions[tracked_tasks].append({"starttime": time.strftime('%M-%S'), "endtime": None})
+                sessions[tracked_tasks].append(
+                        {
+                            "starttime": time.strftime('%M-%S'), 
+                            "endtime": None,
+                        }
+                    )
             else:
-                sessions[tracked_tasks].append({"starttime": None, "endtime": None})
+                sessions[tracked_tasks].append(
+                        {
+                            "starttime": None,
+                            "endtime": None,
+                        }
+                    )
 
     else:
         # print("last_session!=None")
@@ -32,17 +41,53 @@ def log_parser(
                 else:
                     if sessions[tracked_tasks][-1]["endtime"] != None:
                         # print("sessions[tracked_tasks][-1]['endtime'] != None:")
-                        sessions[tracked_tasks].append({"starttime": time.strftime('%M-%S'), "endtime": None})
+                        sessions[tracked_tasks].append(
+                                {
+                                    "starttime": time.strftime('%M-%S'), 
+                                    "endtime": None
+                                }
+                            )
 
     return sessions 
 
+def arguments():
+    parser = argparse.ArgumentParser(
+            epilog="""
+            This can be used alone for another time tracker's backend.
+            Altho this should be used with the other files in this program.
+            """
+            )
+    parser.add_argument(
+            "-wd",
+            "--write_delay",
+            type=int, default=60,
+            help="""
+            This is the write delay. It should be an int, in seconds. The default value is 60.
+            """
+            )
+    parser.parse_args()
+    
 def main():
-    tracked:list = ["nvim", "firefox", "yazi", "discord"]
+    arguments()
+    tracked:list = [
+            "nvim",
+            "firefox",
+            "yazi", 
+            "discord",
+            "make",
+            "python",
+            "lazygit",
+            "paru",
+            "pacman",
+            ]
     write_delay:int = 10
     update_delay:int = 1
     x = None
     try:
-        with open(f"log/{time.strftime('%Y')}/{time.strftime('%j')}/{time.strftime('%H')}.log", "r") as load_log_file:
+        with open(
+                f"log/{time.strftime('%Y')}/{time.strftime('%j')}/{time.strftime('%H')}.log",
+                "r"
+                ) as load_log_file:
             file_load = json.load(load_log_file)
         x = "file"
     except FileNotFoundError:
@@ -50,7 +95,9 @@ def main():
         
     while True:
         for _ in range(write_delay):
-            currently_tracked = set(process.info["name"] for process in psutil.process_iter(["name"]) if process.info["name"] in tracked)
+            currently_tracked = set(
+                    process.info["name"] for process in psutil.process_iter(["name"]) if process.info["name"] in tracked
+                    )
             log_infos = {
                     "list_of_tracked_tasks": tracked,
                     "currently_tracked_tasks": currently_tracked,
@@ -81,7 +128,10 @@ def main():
             os.makedirs(hour_log_file_path)
         except FileExistsError:
             pass
-        with open(f"{hour_log_file_path}/{time.strftime('%H')}.log", "w") as hour_log_file:
+        with open(
+                f"{hour_log_file_path}/{time.strftime('%H')}.log",
+                "w"
+                ) as hour_log_file:
             hour_log_file.writelines(json.dumps(last_log))
             print("log written")
         # except
