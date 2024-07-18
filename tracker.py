@@ -7,7 +7,13 @@ def log_parser(
         ):
     if last_session==None:
         # print("last_session==None")
-        sessions = {}
+        sessions:dict = {
+                "tracking_start_and_end_time": 
+                    {
+                        "starttime": time.strftime('%M-%S'),
+                        "endtime": time.strftime('%M-%S'),
+                    }
+                }
         for tracked_tasks in list_of_tracked_tasks:
             sessions[tracked_tasks]=[] # this is sessions list
             if tracked_tasks in currently_tracked_tasks:
@@ -28,7 +34,7 @@ def log_parser(
 
     else:
         # print("last_session!=None")
-        sessions = last_session
+        sessions:dict=last_session
         for tracked_tasks in list_of_tracked_tasks:
             if tracked_tasks not in currently_tracked_tasks:
                 # print("tracked_tasks not in currently_tracked_tasks")
@@ -47,6 +53,7 @@ def log_parser(
                                     "endtime": None
                                 }
                             )
+        sessions["tracking_start_and_end_time"]["endtime"]=time.strftime('%M-%S')
 
     return sessions 
 
@@ -99,6 +106,20 @@ def arguments():
             this to something that's more than 1. that's not guarantied to fix it,
             however it might help.
             """,
+            )
+    parser.add_argument(
+            "-t",
+            "--track",
+            type=str,
+            default=None,
+            help="""
+            This is the list of files that the program would track. The default 
+            value is None. If the value isn't provided, the program would try to
+            read the latest file from the log, and try to track the programs that
+            the latest log has. to provide the list of processes that you want to
+            track, you would need to seperate them by commas, and no spaces should
+            be in the list. Example: "-t firefox,discord,nvim,yazi,lazygit,make"
+            """
             )
 
     parser.parse_args()
