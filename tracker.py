@@ -271,9 +271,6 @@ def main():
                     "list_of_tracked_tasks": tracked,
                     "currently_tracked_tasks": currently_tracked,
                     }
-            if time.strftime('%H') != check_last_log()[2][:2]:
-                x = None
-
             if x == "done":
                 last_log = log_parser(
                         **log_infos,
@@ -305,6 +302,8 @@ def main():
                 ) as hour_log_file:
             json.dump(last_log, hour_log_file, indent=4)
             print("log written")
+        if time.strftime('%H') != check_last_log()[2][:2]:
+            x = None
         # except
 
 if __name__ == "__main__":
