@@ -1,5 +1,8 @@
-import psutil, time, json, os, argparse
+import psutil, time, json, os, argparse, re
    
+def smart_multi(multistring:str):
+    return re.sub(r" +", " ", multistring)
+
 def log_parser(
     list_of_tracked_tasks:list=[],
     currently_tracked_tasks:list=[],
@@ -64,12 +67,14 @@ def arguments():
             Altho this should be used with the other files in this program.
             """,
             )
+
     parser.add_argument(
             "-wd",
             "--write_delay",
             type=int, 
             default=60,
             help="""
+            THIS IS NOT IMPLEMENTED YET!!!
             This is the delay that your data gets written down in the log.
             It should be an int. The default value is 60.
             Lower values means more writes, that means that in the case of a power outage,
@@ -87,14 +92,16 @@ def arguments():
             a write delay of 1.5*50 = 75 seconds.
             """,
             )
+
     parser.add_argument(
             "-ud",
             "--update-delay",
             type=float,
             default=1,
             help="""
+            THIS IS NOT IMPLEMENTED YET!!!
             This is the update delay that your data gets updated.
-            It can be an int or a float. The default value is 1. using this something
+            It can be an int or a float. The default value is 1. Setting this something
             that's less that 1 isn't gonna make a difference cz the the program
             doesn't write down the milliseconds in the database. it writes the seconds.
             so making this less than 1 should make no difference in accuracy while it
@@ -107,22 +114,72 @@ def arguments():
             however it might help.
             """,
             )
+
     parser.add_argument(
             "-t",
             "--track",
             type=str,
             default=None,
             help="""
+            THIS IS NOT IMPLEMENTED YET!!!
             This is the list of files that the program would track. The default 
             value is None. If the value isn't provided, the program would try to
             read the latest file from the log, and try to track the programs that
             the latest log has. to provide the list of processes that you want to
             track, you would need to seperate them by commas, and no spaces should
-            be in the list. Example: "-t firefox,discord,nvim,yazi,lazygit,make"
+            be in the list. Example: "-t firefox,discord,nvim,yazi,lazygit,make".
+            if you put something and see that it's not being tracked, you should
+            open your os's task manager and see what's the task's name. because
+            the script check's the processes name then tracks from it.
             """
             )
 
-    parser.parse_args()
+    parser.add_argument(
+            "-pl",
+            "--print-log",
+            type=bool,
+            default=False,
+            help="""
+            THIS IS NOT IMPLEMENTED YET!!!
+            This is the output's value. The default value is False. If the value
+            is set to True, then it print out the log in the terminal.
+            """
+            )
+
+    args = parser.parse_args()
+
+    if args.update_delay < 1:
+        print("Update delay is less than 1. This isn't recommended.")
+    if args.update_delay * args.write_delay < 1:
+        print("update delay*write delay is less than one. this will wear out your system")
+
+    try:
+        tracked = args.track.split(",")
+    except AttributeError:
+        try:
+            y = sorted(os.listdir("log"))[-1]
+        except FileNotFoundError:
+            exit(smart_multi("""
+                 The log folder isn't created.
+                 
+                 If this is your first time using this program, you need to provide the tasknames that you want to track.
+                 Like firefox, nvim, yazi for example.
+
+                 And if you ran this program before and this is still happening, check if your log folder is in the same
+                 directory as the program or not. also check permissions and double check the folder.
+                 
+                 for more info, run this program with --help.
+                 """))
+        print(y)
+        yd = sorted(os.listdir(f"log/{y}"))[-1]
+        print(yd)
+        h = sorted(os.listdir(f"log/{y}/{yd}"))[-1]
+        print(h)
+    return {
+            "wd": args.write_delay,
+            "ud": args.update_delay,
+            # "t": tracked,
+            }
     
 def main():
     arguments()
@@ -132,7 +189,6 @@ def main():
             "yazi", 
             "discord",
             "make",
-            "python",
             "lazygit",
             "paru",
             "pacman",
@@ -140,9 +196,10 @@ def main():
     write_delay:int = 10
     update_delay:int = 1
     x = None
+
     try:
         with open(
-                f"log/{time.strftime('%Y')}/{time.strftime('%j')}/{time.strftime('%H')}.log",
+                f"log/{time.strftime('%Y')}/{time.strftime('%j')}/{time.strftime('%H')}.json",
                 "r"
                 ) as load_log_file:
             file_load = json.load(load_log_file)
@@ -176,17 +233,16 @@ def main():
                         )
             print(last_log)
             time.sleep(update_delay)
-            os.system("clear")
             x = "done"
         
         hour_log_file_path = f"log/{time.strftime('%Y')}/{time.strftime('%j')}"
 
         try:
-            os.makedirs(hour_log_file_path)
+            os.makedirs(f"{hour_log_file_path}")
         except FileExistsError:
             pass
         with open(
-                f"{hour_log_file_path}/{time.strftime('%H')}.log",
+                f"{hour_log_file_path}/{time.strftime('%H')}.json",
                 "w"
                 ) as hour_log_file:
             json.dump(last_log, hour_log_file, indent=4)
@@ -194,4 +250,6 @@ def main():
         # except
 
 if __name__ == "__main__":
-    main()
+    x = arguments()
+    # print(x)
+    # main()
