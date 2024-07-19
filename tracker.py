@@ -3,6 +3,73 @@ import psutil, time, json, os, argparse, re
 def smart_multi(multistring:str):
     return re.sub(r" +", " ", multistring)
 
+def check_last_log():
+
+    try:
+        y = sorted(os.listdir("log"))[-1]
+    except FileNotFoundError:
+        exit(smart_multi("""
+             The program can't start because the log directory isn't created.
+             
+             If this is your first time using this program, you need to provide the tasknames that you want to track.
+             Like firefox, nvim, yazi for example.
+
+             And if you ran this program before and this is still happening, check if your log directory is in the same
+             directory as the program or not. also check permissions and double check the directory.
+             The log directory and it's subdirectories shouldn't be empty or shouldn't be tampered with.
+             
+             for more info, run this program with --help.
+             """))
+    except IndexError:
+        exit(smart_multi("""
+             The program can't start because log directory is created but the program thinks it's empty.
+             
+             If this is your first time using this program, you need to provide the tasknames that you want to track.
+             Like firefox, nvim, yazi for example.
+
+             And if you ran this program before and this is still happening, check if your log directory is in the same
+             directory as the program or not. also check permissions and double check the directory. The log directory
+             shouldn't be empty or shouldn't be tampered with.
+             
+             for more info, run this program with --help.
+             """))
+
+    # print(y)
+    try:
+        yd = sorted(os.listdir(f"log/{y}"))[-1]
+    except IndexError:
+        exit(smart_multi("""
+             The program can't start because log directory is created but the latest year directory is empty.
+             
+             If this is your first time using this program, you need to provide the tasknames that you want to track.
+             Like firefox, nvim, yazi for example.
+
+             And if you ran this program before and this is still happening, check if your log directory is in the same
+             directory as the program or not. also check permissions and double check the directory. The log directory
+             and it's subdirectories shouldn't be empty or shouldn't be tampered with.
+             
+             for more info, run this program with --help.
+             """))
+    # print(yd)
+    try:
+        h = sorted(os.listdir(f"log/{y}/{yd}"))[-1]
+    except IndexError:
+        exit(smart_multi("""
+             The program can't start because log directory and the year directory exists, but there isn't a valid
+             year's day directory, or it's empty.
+             
+             If this is your first time using this program, you need to provide the tasknames that you want to track.
+             Like firefox, nvim, yazi for example.
+
+             And if you ran this program before and this is still happening, check if your log directory is in the same
+             directory as the program or not. also check permissions and double check the directory. The log directory
+             and it's subdirectories shouldn't be empty or shouldn't be tampered with.
+             
+             for more info, run this program with --help.
+             """))
+    # print(h)
+    return y, yd, h
+
 def log_parser(
     list_of_tracked_tasks:list=[],
     currently_tracked_tasks:list=[],
@@ -156,29 +223,17 @@ def arguments():
     try:
         tracked = args.track.split(",")
     except AttributeError:
-        try:
-            y = sorted(os.listdir("log"))[-1]
-        except FileNotFoundError:
-            exit(smart_multi("""
-                 The log folder isn't created.
-                 
-                 If this is your first time using this program, you need to provide the tasknames that you want to track.
-                 Like firefox, nvim, yazi for example.
-
-                 And if you ran this program before and this is still happening, check if your log folder is in the same
-                 directory as the program or not. also check permissions and double check the folder.
-                 
-                 for more info, run this program with --help.
-                 """))
-        print(y)
-        yd = sorted(os.listdir(f"log/{y}"))[-1]
-        print(yd)
-        h = sorted(os.listdir(f"log/{y}/{yd}"))[-1]
-        print(h)
+        y, yd, h = check_last_log()
+        with open(
+                f"log/{y}/{yd}/{h}",
+                "r"
+                ) as load_log_file:
+            file_load = json.load(load_log_file)
+        tracked = [task for task in file_load if task != "tracking_start_and_end_time"]
     return {
             "wd": args.write_delay,
             "ud": args.update_delay,
-            # "t": tracked,
+            "t": tracked,
             }
     
 def main():
@@ -206,7 +261,7 @@ def main():
         x = "file"
     except (FileNotFoundError, json.decoder.JSONDecodeError):
         pass
-        
+    
     while True:
         for _ in range(write_delay):
             currently_tracked = set(
@@ -216,6 +271,9 @@ def main():
                     "list_of_tracked_tasks": tracked,
                     "currently_tracked_tasks": currently_tracked,
                     }
+            if time.strftime('%H') != check_last_log()[2][:2]:
+                x = None
+
             if x == "done":
                 last_log = log_parser(
                         **log_infos,
@@ -250,6 +308,8 @@ def main():
         # except
 
 if __name__ == "__main__":
-    x = arguments()
+    # x = arguments()
     # print(x)
-    # main()
+    main()
+    # print(time.strftime('%H'))
+    # print(check_last_log()[2][:2])
