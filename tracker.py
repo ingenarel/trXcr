@@ -141,7 +141,6 @@ def arguments():
             type=int, 
             default=60,
             help="""
-            THIS IS NOT IMPLEMENTED YET!!!
             This is the delay that your data gets written down in the log.
             It should be an int. The default value is 60.
             Lower values means more writes, that means that in the case of a power outage,
@@ -166,7 +165,6 @@ def arguments():
             type=float,
             default=1,
             help="""
-            THIS IS NOT IMPLEMENTED YET!!!
             This is the update delay that your data gets updated.
             It can be an int or a float. The default value is 1. Setting this something
             that's less that 1 isn't gonna make a difference cz the the program
@@ -188,7 +186,6 @@ def arguments():
             type=str,
             default=None,
             help="""
-            THIS IS NOT IMPLEMENTED YET!!!
             This is the list of files that the program would track. The default 
             value is None. If the value isn't provided, the program would try to
             read the latest file from the log, and try to track the programs that
@@ -202,14 +199,14 @@ def arguments():
             )
 
     parser.add_argument(
-            "-pl",
-            "--print-log",
-            type=bool,
-            default=False,
+            "-d",
+            "--debug",
+            type=str,
+            default="False",
             help="""
-            THIS IS NOT IMPLEMENTED YET!!!
             This is the output's value. The default value is False. If the value
-            is set to True, then it print out the log in the terminal.
+            is set to true/t/y/yes, then it will run in debug mode. it's case
+            insensitive, otherwise, the value would be false.
             """
             )
 
@@ -230,26 +227,24 @@ def arguments():
                 ) as load_log_file:
             file_load = json.load(load_log_file)
         tracked = [task for task in file_load if task != "tracking_start_and_end_time"]
+    if args.debug.lower() in ["true", "t", "y", "yes"]:
+        debug = True
+    else:
+        debug = False
     return {
             "wd": args.write_delay,
             "ud": args.update_delay,
             "t": tracked,
+            "d": debug,
             }
     
 def main():
-    arguments()
-    tracked:list = [
-            "nvim",
-            "firefox",
-            "yazi", 
-            "discord",
-            "make",
-            "lazygit",
-            "paru",
-            "pacman",
-            ]
-    write_delay:int = 10
-    update_delay:int = 1
+    args = arguments()
+    if args["d"] == True:
+        print(f"args:\n{args}")
+    tracked:list = args["t"]
+    write_delay:int = args["wd"]
+    update_delay:int = args["ud"]
     x = None
 
     try:
@@ -286,7 +281,8 @@ def main():
                         **log_infos,
                         last_session=None
                         )
-            print(last_log)
+            if args["d"] == True:
+                print(last_log)
             time.sleep(update_delay)
             x = "done"
         
@@ -301,14 +297,10 @@ def main():
                 "w"
                 ) as hour_log_file:
             json.dump(last_log, hour_log_file, indent=4)
-            print("log written")
+            if args["d"] == True:
+                print("log written\n")
         if time.strftime('%H') != check_last_log()[2][:2]:
             x = None
-        # except
 
 if __name__ == "__main__":
-    # x = arguments()
-    # print(x)
     main()
-    # print(time.strftime('%H'))
-    # print(check_last_log()[2][:2])
