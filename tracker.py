@@ -68,6 +68,18 @@ def check_last_log():
              for more info, run this program with --help.
              """))
     # print(h)
+    try:
+        with open(
+                f"log/{y}/{yd}/{h}",
+                "r"
+                ) as load_log_file:
+            try_load = json.load(load_log_file)
+            try_load = None
+    except json.decoder.JSONDecodeError:
+        exit(smart_multi(f"""
+        There is something wrong with log/{y}/{yd}/{h} file. Check it's validity. It shouldn't be empty.
+        If it's empty, delete it. And after deleting it, if the parent directory is empty, delete it too.
+             """))
     return y, yd, h
 
 def log_parser(
@@ -199,6 +211,17 @@ def arguments():
             )
 
     parser.add_argument(
+            "-ut",
+            "-update-tracked",
+            type=str,
+            default=None,
+            help="""
+            This is the list of program's that you want to add to the currently
+            tracked list.
+            """
+            )
+
+    parser.add_argument(
             "-d",
             "--debug",
             type=str,
@@ -212,11 +235,18 @@ def arguments():
 
     args = parser.parse_args()
 
+
+    # update delay
     if args.update_delay < 1:
         print("Update delay is less than 1. This isn't recommended.")
+    # update delay
+
+    # write delay
     if args.update_delay * args.write_delay < 1:
         print("update delay*write delay is less than one. this will wear out your system")
+    # write delay
 
+    # track
     try:
         tracked = args.track.split(",")
     except AttributeError:
@@ -227,10 +257,15 @@ def arguments():
                 ) as load_log_file:
             file_load = json.load(load_log_file)
         tracked = [task for task in file_load if task != "tracking_start_and_end_time"]
+    # track
+
+    # debug
     if args.debug.lower() in ["true", "t", "y", "yes"]:
         debug = True
     else:
         debug = False
+    # debug
+
     return {
             "wd": args.write_delay,
             "ud": args.update_delay,
