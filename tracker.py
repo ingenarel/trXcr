@@ -4,7 +4,6 @@ def smart_multi(multistring:str):
     return re.sub(r" +", " ", multistring)
 
 def check_last_log():
-
     try:
         y = sorted(os.listdir("log"))[-1]
     except FileNotFoundError:
@@ -82,6 +81,15 @@ def check_last_log():
              """))
     return y, yd, h
 
+def read_tracked_programs_from_log():
+    y, yd, h = check_last_log()
+    with open(
+            f"log/{y}/{yd}/{h}",
+            "r"
+            ) as load_log_file:
+            file_load = json.load(load_log_file)
+    return [task for task in file_load if task != "tracking_start_and_end_time"]
+
 def log_parser(
     list_of_tracked_tasks:list=[],
     currently_tracked_tasks:list=[],
@@ -120,12 +128,30 @@ def log_parser(
         for tracked_tasks in list_of_tracked_tasks:
             if tracked_tasks not in currently_tracked_tasks:
                 # print("tracked_tasks not in currently_tracked_tasks")
-                if sessions[tracked_tasks][-1]["starttime"] != None and sessions[tracked_tasks][-1]["endtime"] == None:
-                    # print("sessions[tracked_tasks][-1]['endtime'] == None")
-                    sessions[tracked_tasks][-1]["endtime"] = time.strftime('%M-%S')
+                try:
+                    if sessions[tracked_tasks][-1]["starttime"] != None and sessions[tracked_tasks][-1]["endtime"] == None:
+                        # print("sessions[tracked_tasks][-1]['endtime'] == None")
+                        sessions[tracked_tasks][-1]["endtime"] = time.strftime('%M-%S')
+                except KeyError:
+                    sessions[tracked_tasks]=[] # this is sessions list
+                    sessions[tracked_tasks].append(
+                        {
+                            "starttime": None,
+                            "endtime": None,
+                        }
+                    )
             else:
-                if sessions[tracked_tasks][-1]["starttime"] == None:
-                    sessions[tracked_tasks][-1]["starttime"] = time.strftime('%M-%S')
+                try:
+                    if sessions[tracked_tasks][-1]["starttime"] == None:
+                        sessions[tracked_tasks][-1]["starttime"] = time.strftime('%M-%S')
+                except KeyError:
+                    sessions[tracked_tasks]=[] # this is sessions list
+                    sessions[tracked_tasks].append(
+                        {
+                            "starttime": time.strftime('%M-%S'),
+                            "endtime": None,
+                        }
+                    )
                 else:
                     if sessions[tracked_tasks][-1]["endtime"] != None:
                         # print("sessions[tracked_tasks][-1]['endtime'] != None:")
@@ -212,7 +238,7 @@ def arguments():
 
     parser.add_argument(
             "-ut",
-            "-update-tracked",
+            "--update-tracked",
             type=str,
             default=None,
             help="""
@@ -246,18 +272,18 @@ def arguments():
         print("update delay*write delay is less than one. this will wear out your system")
     # write delay
 
-    # track
-    try:
-        tracked = args.track.split(",")
-    except AttributeError:
-        y, yd, h = check_last_log()
-        with open(
-                f"log/{y}/{yd}/{h}",
-                "r"
-                ) as load_log_file:
-            file_load = json.load(load_log_file)
-        tracked = [task for task in file_load if task != "tracking_start_and_end_time"]
-    # track
+    # track and update tracked
+    if args.track != None and args.update_tracked == None:
+        tracked = set(args.track.split(","))
+    # except AttributeError:
+    elif args.track == None and args.update_tracked == None:
+        tracked = set(read_tracked_programs_from_log())
+    elif args.track == None and args.update_tracked != None:
+        tracked = set(read_tracked_programs_from_log() + args.update_tracked.split(","))
+    elif args.track != None and args.update_tracked != None:
+        print("why bro?")
+        tracked = set(args.track.split(",") + args.update_tracked.split(","))
+    # track and update tracked
 
     # debug
     if args.debug.lower() in ["true", "t", "y", "yes"]:
@@ -277,7 +303,7 @@ def main():
     args = arguments()
     if args["d"] == True:
         print(f"args:\n{args}")
-    tracked:list = args["t"]
+    tracked:set = args["t"]
     write_delay:int = args["wd"]
     update_delay:int = args["ud"]
     x = None
